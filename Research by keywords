@@ -1,0 +1,219 @@
+"""
+GEOCITIES. Research by keywords
+
+@author: Diego
+"""
+
+
+"""PART1 - KEYWORDS DEFINITION"""
+
+import os
+import time
+import glob
+import mmap
+from bs4 import BeautifulSoup, NavigableString, Tag
+#import re
+#import wkhtmltopdf
+
+sep = os.sep
+#local = os.getcwd()
+
+variationsb = {}
+variations = {}
+
+variationsb['global warming'] = [b'global warming', b'Global warming', b'Global Warming', b'GLOBAL WARMING']
+variations['global warming'] = ['global warming', 'Global warming', 'Global Warming', 'GLOBAL WARMING']
+
+variationsb['feminism'] = [b'feminis', b'Feminis', b'FEMINIS']
+variations['feminism'] = ['feminis', 'Feminis', 'FEMINIS']
+
+variationsb['terrorism'] = [b'terroris', b'Terroris', b'TERRORIS']
+variations['terrorism'] = ['terroris', 'Terroris', 'TERRORIS']
+
+variationsb['911'] = [b' 9/11 ']
+variations['911'] = [' 9/11 ']
+
+variationsb['wtc'] = [b'WTC', b'W.T.C.', b' wtc ', b'Word Trade Center', b'Word trade center', b'word trade center', b'WORD TRADE CENTER']
+variations['wtc'] = ['WTC', 'W.T.C.', ' wtc ', 'Word Trade Center', 'Word trade center', 'word trade center', 'WORD TRADE CENTER']
+
+variationsb['immigration'] = [b'immigra', b'Immigra', b'IMMIGRA']
+variations['immigration'] = ['immigra', 'Immigra', 'IMMIGRA']
+
+variationsb['privacy'] = [b'privacy', b'Privacy', b'PRIVACY']
+variations['privacy'] = ['privacy', 'Privacy', 'PRIVACY']
+
+variationsb['virtual reality'] = [b'virtual reality', b'Virtual reality', b'Virtual Reality', b'VIRTUAL REALITY']
+variations['virtual reality'] = ['virtual reality', 'Virtual reality', 'Virtual Reality', 'VIRTUAL REALITY']
+
+variationsb['dotcom bubble'] = [b'dot-com bubble', b'dotcom bubble', b'Dot-com bubble', b'Dotcom bubble', b'DOT-COM bubble', b'DOTCOM bubble', b'DOT-COM BUBBLE', b'DOTCOM BUBBLE'] + [b'dot-com boom', b'dotcom boom', b'Dot-com boom', b'Dotcom boom', b'DOT-COM boom', b'DOTCOM boom', b'DOT-COM BOOM', b'DOTCOM BOOM'] + [b'dot-com crash', b'dotcom crash', b'Dot-com crash', b'Dotcom crash', b'DOT-COM crash', b'DOTCOM crash', b'DOT-COM CRASH', b'DOTCOM CRASH'] + [b'internet bubble', b'Internet bubble', b'Internet Bubble', b'INTERNET BUBBLE']
+variations['dotcom bubble'] = ['dot-com bubble', 'dotcom bubble', 'Dot-com bubble', 'Dotcom bubble', 'DOT-COM bubble', 'DOT-COM BUBBLE', 'DOTCOM bubble', 'DOTCOM BUBBLE'] + ['dot-com boom', 'dotcom boom', 'Dot-com boom', 'Dotcom boom', 'DOT-COM boom', 'DOTCOM boom', 'DOT-COM BOOM', 'DOTCOM BOOM'] + ['dot-com crash', 'dotcom crash', 'Dot-com crash', 'Dotcom crash', 'DOT-COM crash', 'DOTCOM crash', 'DOT-COM CRASH', 'DOTCOM CRASH'] + ['internet bubble', 'Internet bubble', 'Internet Bubble', 'INTERNET BUBBLE']
+
+variationsb['globalization'] = [b'globalization', b'Globalization', b'GLOBALIZATION', b'globalisation', b'Globalisation', b'GLOBALISATION']
+variations['globalization'] = ['globalization', 'Globalization', 'GLOBALIZATION', 'globalisation', 'Globalisation', 'GLOBALISATION']
+
+variationsb['temporary work'] = [b'temporary work', b'Temporary work', b'Temporary Work', b'TEMPORARY WORK', b'temporary job', b'Temporary job', b'Temporary Job', b'TEMPORARY JOB', b'temporary employment', b'Temporary employment', b'Temporary Employment', b'TEMPORARY EMPLOYMENT']
+variations['temporary work'] = ['temporary work', 'Temporary work', 'Temporary Work', 'TEMPORARY WORK', 'temporary job', 'Temporary job', 'Temporary Job', 'TEMPORARY JOB', 'temporary employment', 'Temporary employment', 'Temporary Employment', 'TEMPORARY EMPLOYMENT']
+
+variationsb['fake news'] = [b'fake news', b'Fake news', b'Fake News', b'FAKE NEWS']
+variations['fake news'] = ['fake news', 'Fake news', 'Fake News', 'FAKE NEWS']
+
+variationsb['new millennium'] = [b'new millennium', b'New millennium', b'New Millennium', b'NEW MILLENNIUM']
+variations['new millennium'] = ['new millennium', 'New millennium', 'New Millennium', 'NEW MILLENNIUM']
+
+variationsb['matteo renzi'] = [b'Matteo Renzi', b'matteo renzi', b'matteorenzi', b'Matteorenzi', b'MatteoRenzi', b'MATTEO RENZI', b'MATTEORENZI']
+variations['matteo renzi'] = ['Matteo Renzi', 'matteo renzi', 'matteorenzi', 'Matteorenzi', 'MatteoRenzi', 'MATTEO RENZI', 'MATTEORENZI']
+
+variationsb['beppe grillo'] = [b'Beppe Grillo', b'beppe grillo', b'beppegrillo', b'BEPPE GRILLO', b'BEPPEGRILLO']
+variations['beppe grillo'] = ['Beppe Grillo', 'beppe grillo', 'beppegrillo', 'BEPPE GRILLO', 'BEPPEGRILLO']
+
+variationsb['sliding doors'] = [b'sliding doors', b'Sliding doors', b'Sliding Doors', b'SLIDING DOORS']
+variations['sliding doors'] = ['sliding doors', 'Sliding doors', 'Sliding Doors', 'SLIDING DOORS']
+
+variationsb['boris johnson'] = [b'Boris Johnson', b'boris johnson', b'borisjohnson', b'Borisjohnson', b'BorisJohnson', b'BORIS JOHNSON', b'BORISJOHNSON']
+variations['boris johnson'] = ['Boris Johnson', 'boris johnson', 'borisjohnson', 'Borisjohnson', 'BorisJohnson', 'BORIS JOHNSON', 'BORISJOHNSON']
+
+variationsb['donald trump'] = [b'Donald Trump', b'donald trump', b'donaldtrump', b'Donaldtrump', b'DonaldTrump', b'DONALD TRUMP', b'DONALDTRUMP']
+variations['donald trump'] = ['Donald Trump', 'donald trump', 'donaldtrump', 'Donaldtrump', 'DonaldTrump', 'DONALD TRUMP', 'DONALDTRUMP']
+
+variationsb['bush'] = [b'Bush', b'BUSH']
+variations['bush'] = ['Bush', 'BUSH']
+
+variationsb['clinton'] = [b'Clinton', b'CLINTON']
+variations['clinton'] = ['Clinton', 'CLINTON']
+
+variationsb['berlusconi'] = [b'Berlusconi', b'BERLUSCONI']
+variations['berlusconi'] = ['Berlusconi', 'BERLUSCONI']
+
+variationsb['jesus'] = [b'Jesus', b'JESUS', b'Christ ', b'CHRIST ']
+variations['jesus'] = ['Jesus', 'JESUS', 'Christ ', 'CHRIST ']
+
+variationsb['merkel'] = [b'Merkel', b'MERKEL']
+variations['merkel'] = ['Merkel', 'MERKEL']
+
+variationsb['salvini'] = [b'Salvini', b'SALVINI']
+variations['salvini'] = ['Salvini', 'SALVINI']
+
+variationsb['wilders'] = [b'Wilders', b'WILDERS']
+variations['wilders'] = ['Wilders', 'WILDERS']
+
+variationsb['rutte'] = [b'Rutte', b'RUTTE']
+variations['rutte'] = ['Rutte', 'RUTTE']
+
+variationsb['putin'] = [b'Putin', b'PUTIN']
+variations['putin'] = ['Putin', 'PUTIN']
+
+variationsb['obama'] = [b'Obama', b'OBAMA']
+variations['obama'] = ['Obama', 'OBAMA']
+
+letters = ['_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+           'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+           'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+           'w', 'x', 'y', 'z']
+
+letters = [sep+l for l in letters]
+
+lowerUpper = ['E:'+sep+'geocities_web'+sep+'geocities_lower'+sep+'YAHOOIDS', 'E:'+sep+'geocities_web'+sep+'geocities_Upper'+sep+'YAHOOIDS']
+
+
+
+#%%
+"""PART2 - SEARCHING FOR ALL .HTML FILES CONTAINING KEYWORDS"""
+
+"""Save the adresses of all .htm or .html files containing the keywords,
+explore up to depth 6 in the Geocities folders tree"""
+
+keywords = ['bush', 'clinton', 'berlusconi', 'jesus']   #choose the keywords among those defined in PART1
+fileadd = {}
+times = {}
+
+for key in keywords:
+    fileadd[key] = open('E:'+sep+'geocities'+sep+'extractions'+sep+key+' _ adresses.txt', 'w')
+
+
+for path0 in lowerUpper :
+    for L1 in letters :
+        for L2 in letters:
+            path = path0 + L1 + L2
+            if os.path.exists(path):
+                t0 = time.time()
+                #Create and iterable object cointaining all .htm and .html files adresses
+                #go up to depth 6, where depth 0 is the user's folder / up to depth 4 if the user is in a sub-neighborhood
+                html = iter([f for f in glob.glob(path+sep+'*'+sep+'*.htm*')+glob.glob(path+sep+'*'+sep+'*'+sep+'*.htm*')+glob.glob(path+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*')+glob.glob(path+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*')+glob.glob(path+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*')+glob.glob(path+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*')+glob.glob(path+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*') if os.path.isfile(f) and os.stat(f).st_size!=0])
+                #Find the .htm and .html files containing some keyword
+                #and save their adresses in a .txt file
+                for f in html:
+                    with open(f, 'rb', 0) as file:
+                        with mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as s:
+                            #se trova almeno una delle parole chiave nel file
+                            for key in keywords:
+                                if any(s.find(string)!=-1 for string in variationsb[key]) :
+                                    fileadd[key].write(f+'\n')
+                times[L1+L2] = time.time() - t0
+                print('Folder ', L1+L2,' searched in ',times[L1+L2],' seconds')
+
+
+for key in keywords:
+    fileadd[key].close()
+print(sum(times.values())/3600)
+    
+
+
+#%%
+"""PART3 - EXTRACTING PARAGRAPHS CONTAINING KEYWORDS"""
+    
+"""For each .html file found in PART2,
+clean the page with BeautifulSoup and extract only the PARAGRAPH containing a keyword"""
+
+
+keywords = ['bush', 'clinton', 'berlusconi', 'jesus']   #scegli le keys che vuoi tra quelle definite nella parte1
+times = {}
+
+for key in keywords:
+
+    t0 = time.time()
+    filelist = open('E:'+sep+'geocities'+sep+'extractions'+sep+key+' _ adresses.txt', 'r').read().splitlines()
+    newfile = open('E:'+sep+'geocities_web'+sep+'extractions'+sep+key+' _ paragraphs.txt', 'w', errors='ignore')
+
+    c=0
+    for f in filelist:
+        with open(f, 'r', errors='ignore') as file:
+            soup = BeautifulSoup(file, 'lxml')   
+        
+            """Building paragraphs:
+            html text is truncated up to <p>,
+            or up to \n or <br> but only if repeated twice or preceded by punctuation . ? !"""
+        
+            for br in soup.find_all('br'):
+                br.replace_with('\n')   #replace <br> with \n
+            for a in soup.find_all('a'):
+                a.replace_with(' ')     #delete links <a>
+            for p in soup.find_all('p'):
+                p.replace_with('\n\n'+p.text+'\n\n')  #replace <p> with \n\n
+            
+            page = soup.text
+        
+            page = page.replace('.\n','parolamagica.')
+            page = page.replace('!\n','parolamagica!')
+            page = page.replace('?\n','parolamagica?')
+            page = page.replace('\n\n','parolamagica2')
+            page = page.replace('\n',' ')      #remove \n unless it is repeated twice or preceded by punctuation . ? !
+            #page = page.replace('\r',' ')
+            page = page.replace('parolamagica.','.\n')
+            page = page.replace('parolamagica!','!\n')
+            page = page.replace('parolamagica?','?\n')
+            page = page.replace('parolamagica2','\n')
+        
+            paragraphs = page.splitlines()      #split text at each \n left
+        
+            for paragraph in paragraphs:
+                #paragraph = paragraph.strip()
+                paragraph = " ".join(paragraph.split()) #remove double blanks and tabs
+                if any((string in paragraph) for string in variations[key]):
+                    newfile.write(str(c)+'. '+f+'\n')
+                    newfile.write(paragraph+'\n\n')
+        
+            c +=1
+
+    newfile.close()
+    times[key] = time.time() - t0
+    print(key+' paragraphs copied in ',times[key],' seconds.')
