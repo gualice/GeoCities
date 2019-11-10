@@ -1,0 +1,125 @@
+# -*- coding: utf-8 -*-
+"""
+@author: Diego
+"""
+#Per scaricare i file di geocities
+
+
+import os
+from bs4 import BeautifulSoup
+import requests
+import re
+import glob
+
+local = os.getcwd()
+sep = os.sep
+
+#%%
+
+def download_file(url, path):
+    #path = url.split('/')[-1].split('?')[0]
+    r = requests.get(url, stream=True)
+    if r.status_code == 200:
+        with open(path, 'wb') as f:
+            for chunk in r:
+                f.write(chunk)
+                
+
+url = "https://archive.org/download/2009-archiveteam-geocities-part8"
+r  = requests.get(url)
+
+soup = BeautifulSoup(r.text,'lxml')
+
+pages = soup.findAll('a', href=re.compile('.*geocities.*'))
+
+for page in pages:
+    file_link = page.get('href')
+    file_url = url + '/' + file_link
+    file_path = local+sep+file_link
+    if os.path.exists(file_path) :
+        file_path = file_path + '(1)'
+    download_file(file_url, file_path)
+    
+
+#%%
+    
+#Trova le cartelle con .htm nel nome (fatto per 'a')
+path = r"E:\geocities_web\geocities_lower\YAHOOIDS\a"
+listing = glob.glob(path+'\*\*\*')
+to_correct = [f for f in listing if os.path.isdir(f) and '.htm' in f ]
+print(len(to_correct))
+for x in to_correct:
+    print(x)
+    
+
+#Rinominare files
+path = r"E:\geocities_web\geocities\YAHOOIDS\a\u\auroraef\blog"
+onlyfiles = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and '.' not in f]
+for f in onlyfiles:
+    os.rename(path+sep+f, path+sep+f+'.html')
+
+path = r"E:\geocities_web\geocities\YAHOOIDS\a\v\avnerh.geo"   
+for n in range(1,14):
+    os.rename(path+sep+'fmintro.html.'+str(n),
+              path+sep+'fmintro'+str(n)+'.html')
+    
+    
+#%%
+    
+#Dizionario dei quartieri e sottoquartieri
+
+geomap = {}
+geomap['athens'] = ['academy', 'Acropolis', 'Aegean', 'Agora', 'atlantis', 'atrium', 'bridge', 'column', 'crete', 'cyprus', 'Delphi', 'Forum', 'Ithaca', 'marathon', 'Olympus', 'Oracle', 'pantheon', 'parthenon', 'Rhodes', 'sparta', 'Stage', 'styx', 'thebes', 'Troy']
+geomap['augusta'] = ['fairway', 'green', 'links']
+geomap['baja'] = ['canyon', 'cliffs', 'Dunes', 'Outback', 'ravine', 'Trails']
+geomap['bourbonStreet'] = ['bayou', 'Canal', 'delta', 'Inn', 'quarter', 'square']
+geomap['capecanaveral'] = ['campus', 'cockpit', 'Galaxy', 'Hall', 'Hangar', 'Lab', 'launchpad', 'orbit', 'runway', 'Station']
+geomap['capitolHill'] = ['congress', 'embassy', 'Lobby', 'Parliament', 'Senate']
+geomap['collegePark'] = ['Center', 'lab', 'Pool', 'Residence']
+geomap['colosseum'] = ['arena', 'base', 'Bench', 'bleachers', 'court', 'dome', 'dugout', 'Field', 'goal', 'sym', 'hoop', 'lodge', 'Loge', 'midfield', 'mound', 'park', 'pressbox', 'ring', 'rink', 'sideline', 'slope', 'stadium', 'stands', 'Track', 'turf']
+geomap['enchantedForest'] = ['arbor', 'cottage', 'creek', 'dell', 'fountain', 'Glade', 'meadow', 'mountain', 'palace', 'pond', 'Tower']
+geomap['eureka'] = ['boardroom', 'business', 'company', 'concourse', 'enterprises', 'executive', 'gold', 'mine', 'park', 'plaza', 'promenade']
+geomap['fashionavenue'] = ['agency', 'catwalk', 'runway', 'salon', 'stage']
+geomap['heartland'] = ['Acres', 'Bluffs', 'cabin', 'Canyon', 'cliffs', 'cottage', 'country', 'creek', 'Estates', 'falls', 'farm', 'Fields', 'Flats', 'Forest', 'garden', 'glade', 'Grove', 'hearth', 'Hills', 'hollow', 'lake', 'Lane', 'Meadows', 'Oaks', 'orchard', 'Park', 'Pines', 'Plains', 'Pointe', 'pond', 'Prairie', 'Ranch', 'Ridge', 'river', 'shores', 'stream', 'Trail', 'Valley', 'village', 'vista', 'Woods']
+geomap['hollywood'] = ['academy', 'agency', 'Boulevard', 'Bungalow', 'chateau', 'cinema', 'Club', 'derby', 'film', 'guild', 'Heights', 'highrise', 'Hills', 'interview', 'land', 'location', 'Lot', 'makeup', 'mansion', 'movie', 'palace', 'park', 'pavillion', 'picture', 'screen', 'set', 'Studio', 'Theater', 'trailer', 'video']
+geomap['hotSprings'] = ['bath', 'chalet', 'falls', 'oasis', 'resort', 'Spa', 'villa']
+geomap['madisonavenue'] = ['boardroom', 'newsstand', 'suite']
+geomap['motorCity'] = ['Boulevard', 'downs', 'Factory', 'flats', 'garage', 'lane', 'pit', 'shop', 'show', 'speedway', 'street', 'track']
+geomap['napavalley'] = ['vineyard']
+geomap['nashville'] = ['bluegrass', 'opry', 'ranch', 'rodeo', 'Stage']
+geomap['pentagon'] = ['barracks', 'base', 'bunker', 'camp', 'fort', 'Quarters']
+geomap['petsburgh'] = ['fair', 'Farm', 'haven', 'park', 'reserve', 'stable', 'yard', 'zoo']
+geomap['picketfence'] = ['garden', 'street']
+geomap['pipeline'] = ['curb', 'dropzone', 'halfpipe', 'ramp', 'rapids', 'reef', 'ridge', 'shore', 'slope', 'valley']
+geomap['rainForest'] = ['andes', 'Canopy', 'jungle', 'vines', 'wetlands']
+geomap['rodeodrive'] = ['mall', 'outlet']
+geomap['researchtriangle'] = ['facility', 'forum', 'lab', 'thinktank']
+geomap['siliconValley'] = ['bay', 'bridge', 'byte', 'cable', 'Campus', 'chip', 'circuit', 'foothills', 'garage', 'grid', 'haven', 'heights', 'hills', 'horizon', 'lab', 'Lakes', 'Monitor', 'mouse', 'network', 'orchard', 'Park', 'peaks', 'Pines', 'port', 'ridge', 'sector', 'station', 'vista', 'way']
+geomap['soHo'] = ['Cafe', 'Den', 'exhibit', 'gallery', 'Lofts', 'Studios', 'veranda']
+geomap['southBeach'] = ['balcony', 'bay', 'Bluffs', 'Braodwalk', 'Breakers', 'bungalow', 'cabana', 'canal', 'cape', 'castle', 'channel', 'cliffs', 'club', 'coast', 'Cove', 'disco', 'docks', 'dunes', 'gulf', 'harbor', 'inlet', 'island', 'jetty', 'keys', 'lagoon', 'Lights', 'lounge', 'mansion', 'marina', 'palms', 'patio', 'pier', 'plateau', 'pointe', 'port', 'reef', 'sandbar', 'Sand', 'Shores', 'strand', 'Suite', 'surf', 'terrace', 'tidepool', 'wharf']
+geomap['sunsetStrip'] = ['Alley', 'amphitheatre', 'Backstage', 'balcony', 'basement', 'birdland', 'bistro', 'Cabaret', 'Club', 'concert', 'Diner', 'disco', 'event', 'Exhibit', 'floor', 'frontrow', 'Gala', 'garage', 'hall', 'hotel', 'limo', 'lobby', 'loft', 'Loge', 'Lounge', 'mezzanine', 'palace', 'palladium', 'Palms', 'Pavilion', 'Performance', 'Pit', 'plaza', 'scene', 'Show', 'stadium', 'Stage', 'street', 'Studio', 'tempo', 'Towers', 'underground', 'Venue', 'Villa', 'Vine']
+geomap['thetropics'] = ['beach', 'cabana', 'coast', 'cove', 'harbor', 'island', 'lagoon', 'Paradise', 'reef', 'resort', 'shores']
+geomap['televisionCity'] = ['Broadcast', 'lot', 'Network', 'satellite', 'Set', 'Stage', 'Station', 'Studio', 'taping']
+geomap['timesSquare'] = ['alley', 'arcade', 'arena', 'Battlefield', 'bridge', 'bunker', 'castle', 'cauldron', 'cave', 'cavern', 'chamber', 'chaos', 'chasm', 'corner', 'corridor', 'Dome', 'dungeon', 'fortress', 'frontier', 'galaxy', 'Hangar', 'labyrinth', 'lair', 'legend', 'maze', 'metro', 'portal', 'realm', 'Ring', 'stadium', 'tower', 'zone']
+geomap['tokyo'] = ['bay', 'bridge', 'club', 'courtyard', 'dojo', 'field', 'Flats', 'Fountain', 'fuji', 'garden', 'ginza', 'gulf', 'Harbor', 'Highrise', 'island', 'lights', 'market', 'pagoda', 'Shrine', 'spa', 'springs', 'subway', 'teahouse', 'temple', 'towers', 'villa']
+geomap['vienna'] = ['choir', 'opera', 'stage', 'strasse', 'studio', 'waltz']
+geomap['wallstreet'] = ['bureau', 'exchange', 'floor', 'market']
+geomap['wellesley'] = ['Atrium', 'commons', 'Garden', 'Gazebo', 'veranda']
+geomap['westHollywood'] = ['Cafe', 'castro', 'chelsea', 'club', 'Heights', 'Parade', 'park', 'salon', 'stonewall', 'Village']
+geomap['yosemite'] = ['cabin', 'campground', 'Canyon', 'falls', 'forest', 'geyser', 'Gorge', 'meadows', 'Rapids', 'Trails']
+geomap.keys()
+
+Geomap = {}
+Geomap['Area51'] = ['Alien', 'Atlantis', 'Aurora', 'Capsule', 'Cavern', 'Chamber', 'Comet', 'Corridor', 'Crater', 'Dimension', 'Dreamworld', 'Dunes', 'Dungeon', 'Hole', 'Hollow', 'Jupiter', 'Keep', 'Labyrinth', 'Lair', 'Matrix', 'Meteor', 'Nebula', 'Neptune', 'Nova', 'Omega', 'Orion', 'Planet', 'Portal', 'Quadrant', 'Quark', 'Quasar', 'Rampart', 'Realm', 'Saturn', 'Shadowlands', 'Shire', 'Shuttle', 'Stargate', 'Starship', 'Station', 'Underworld', 'Vault', 'Zone']
+
+
+
+
+
+
+
+
+
+
+
+
