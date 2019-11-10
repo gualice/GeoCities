@@ -1,0 +1,179 @@
+import os
+import io
+import time
+from pyspark import SparkContext
+from pyspark.sql import SparkSession, Window
+from pyspark.sql.functions import col, concat_ws, split, explode, lower, upper, lag, lead, udf, trim, translate, monotonically_increasing_id
+import pandas as pd
+from bs4 import BeautifulSoup
+import glob
+
+local = os.getcwd()
+sep = os.sep
+
+# Html files locations into the nested structure of the archive
+# use_unicode=False di wholeTextFiles works faster but what is not coded in utf-8 gets lost
+# The average user has about 1.4MB of data divided in 2 folders, 73files (12 .html files) 
+# Enchanted Forest, about 4500 users, 6.3GB of data, 330000 files (50000 .html)
+
+sc = SparkContext("local", "App Name")
+html_files1 = sc.wholeTextFiles(local+sep+'*'+sep+'*.htm*').map(lambda x: x[0]).collect()   #1 level, Enchanted Forest, 6091 files .html in 4 mins
+html_files2 = sc.wholeTextFiles(local+sep+'*'+sep+'*'+sep+'*.htm*').map(lambda x: x[0]).collect()   #2 level,Enchanted Forest, 32821 files .html in 11 mins
+html_files3 = sc.wholeTextFiles(local+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*').map(lambda x: x[0]).collect()   #3 level, Enchanted Forest, 8378 files .html in 5 mins
+html_files4 = sc.wholeTextFiles(local+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*').map(lambda x: x[0]).collect()   #4 level, Enchanted Forest, 2509 files .html in 2 mins
+html_files5 = sc.wholeTextFiles(local+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*').map(lambda x: x[0]).collect()   #5 level, Enchanted Forest, 261 files in 2 mins
+html_files6 = sc.wholeTextFiles(local+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*').map(lambda x: x[0]).collect()   #6 level, Enchanted Forest, 20 files in 2 mins
+html_files7 = sc.wholeTextFiles(local+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*'+sep+'*.htm*').map(lambda x: x[0]).collect()   #7 level, Enchanted Forest, 18 files in 2 mins
+html_files = html_files1 + html_files2 + html_files3 + html_files4 + html_files5 + html_files6 + html_files7
+with open('html_files.csv', 'a') as f:
+    for item in html_files :
+        f.write("%s\n" % item)
+
+
+# Convert the text file into lower case
+for filename in os.listdir(local):
+    if filename.endswith(".txt"):
+        f = io.open(filename, 'r', encoding='ISO-8859-1')
+        text = f.read()
+        with io.open(filename, 'w', encoding='ISO-8859-1') as out:
+            out.write(text.lower())
+        f.close()
+        out.close()
+        
+#%%
+
+path0 = sep+'geocities_lower'+sep+'YAHOOIDS'+sep
+
+firstletter = 'a'
+secondletter = 'r'
+path1 = firstletter+sep+secondletter+sep+'*'+sep
+path2 = path1+'*'+sep   #for a neighbourhood
+path3 = path2+'*'+sep   #for the subneighbourhood of a neighbourhood
+
+sc = SparkContext("local", "App Name")
+
+#Create RDD made of address+content of .html files or .htm 
+html = sc.wholeTextFiles(local+path0+path1+'*.htm*')
+#L = html.count()
+#RDD of addresses
+#html_add = html.map(lambda x: x[0][6:])
+
+# For keyword research
+
+stringa_list = ["global warming", "Global warming", "Global Warming", "GLOBAL WARMING"]
+stringa_repr = "global warming"
+#research = html.filter(lambda x: any(stringa in x[1] for stringa in stringa_list) )
+research = html.filter(lambda x: any(stringa in x[1] for stringa in stringa_list) ).zipWithIndex()
+#New RDD is made by elements such as address, content, index
+#Lr = research.count()
+#RDD of files containing the sought keyword
+#research_add = research.map(lambda x: x[0][0][6:])
+
+#Save texts and addresses of html pages
+
+def stampabello(x):
+    soup = BeautifulSoup(x[0][1],'lxlm')
+    #soup = BeautifulSoup(x[0][1], from_encoding='latin1')
+    text = soup.get_text()
+    new_file = stringa_repr+'_'+firstletter+'_'+secondletter+'_'+x[1]+'.csv'
+    with io.open(new_file, 'w', errors='ignore') as f:
+        f.write(x[0][0][6:])    #indirizzo della pagina html
+        f.write(text)           #contenuto testuale della pagina, pulito con BeautifulSoup
+        f.close()
+        
+t0 = time.time()
+research.foreach(stampabello)
+t = (time.time() -t0)/60
+
+
+t0 = time.time()
+for file in research.toLocalIterator() : #reasearch_add.collect()
+    soup = BeautifulSoup(file[0][1],'lxml')
+    #soup = BeautifulSoup(x[0][1], from_encoding='latin1')
+    text = soup.get_text()      #estrae solo il testo dal file html
+    new_file = stringa_repr+'_'+firstletter+'_'+secondletter+'_'+file[1]+'.txt'
+    with io.open(new_file, 'wb', errors='ignore') as f:
+        f.write(file[0][0])
+        f.write(text)
+        f.close()
+    count +=1
+t = (time.time() - t0)/60
+
+        
+
+#%%
+#Start a Spark session
+spark = SparkSession\
+    .builder\
+    .appName("PythonWordCount")\
+    .getOrCreate()
+    
+# Read a text file and convert into a Spark dataframe
+#The dataframe elements correspond to the lines of text
+df = spark.read.text(local+sep+"geocities-A-u") 
+#Turn all the text into lowercase
+df = df.withColumn("value", lower(col("value")) )
+   
+#With lineSep="<html>", the dataframe elements correspond to the webpages. Watch out for Upper/Lowercase
+
+df = spark.read.text(local+sep+"geocities-A-u", lineSep="<html>") 
+#df = df.withColumn("value", lower(col("value")) )
+#df = df.withColumn("value", explode(split(col("value"), "<html>")).alias("value"))
+#Turn all the text into lowercase
+
+
+#Add a column with increasing numbers from 1 to df.count()
+#df = df.withColumn("id", monotonically_increasing_id())
+
+##df.select( "*" , *([lead(col(c),default=0).over(Window.orderBy("id")).alias("next_"+c) for c in df.columns]) )
+#df_doppio = df.withColumn("value", concat_ws(' ', col("value"), lead(col("value")).over(Window.orderBy("id")) ) )
+
+
+#%%
+
+#Extract a new DataFrame according to a selected filter
+stringa = "global warming" #"my name is", "i love", "i hate", ...
+#"<html>" , "</html>", "text below generated by server. please remove", ...
+#"my email:", "welcome to your geocities guestbook", "my url:"
+dfNEW = df.filter( df.value.contains(stringa)  )
+
+#First line of DataFrame
+dfNEW.first()
+#Number of lines of the DataFrame
+L = dfNEW.count()
+#Show the DataFrame
+#dfNEW.show()
+#Convert the DataFrame into a list
+#dfNEW.collect()
+
+#Export the filtered DataFrame into a file .csv
+#dfNEW.write.csv(stringa+'.csv')
+t0 = time.time()
+dfNEW.toPandas().to_csv(stringa+'.csv', sep='\n')
+t1 = time.time()
+t = (t1-t0)/60
+##dfNEW.coalesce(1).write.format("text").option("header", "false").mode("append").save("output.txt")
+
+#Create a new DataFrame where identical values are grouped together.
+#There are 2 columns: 'value' with unique values and 'count' containing the number of the repetitions
+df_ = df.groupBy("value").count()
+
+#%%
+
+freq1 = pd.DataFrame(data=freq, index=[1])
+freq1.to_csv('frequency.csv')
+
+
+
+#Create a DataFrame with increasing values from 1 to L
+#rangeDF = spark.range(1, L+1, 1)
+
+
+#dfNEW = dfNEW.withColumn("ID", lit())
+
+#data = pd.read_csv('geocities-A-u', sep='\n', encoding='ISO-8859-1', engine='python')
+
+#dfNEW = df.filter( df.value.contains("<HTML>") | df.value.contains("<html>") | df.value.contains("<Html>") )
+#dfNEW = df.where( lower(df.value).contains("<html>") )
+
+
